@@ -1,0 +1,20 @@
+@startuml
+skinparam componentStyle rectangle
+top to bottom direction
+
+rectangle "an Order" as O
+rectangle "an Order Line" as OL
+rectangle "a customer" as C
+rectangle "a product" as P
+
+O -- O
+
+[ ] -down-> O: 1: calculatePrice
+O -down-> OL: 2. getQuantity()\n3. getProduct()
+O -down-> P: 4: getPricingDetails\n<<local>>
+OL -right-> P
+O -right-> C: 5: getDiscountInfo
+O -up-> [  ]: 6. calculateBasePrice()\n7. calculateDiscounts()
+
+
+@enduml

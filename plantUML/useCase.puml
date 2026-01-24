@@ -1,0 +1,31 @@
+@startuml
+left to right direction
+
+actor "Trading manager" as TM
+actor Trader as T
+
+rectangle " "{
+    usecase "Set limits" as UC1
+    usecase "Analyze risk" as UC2
+    usecase "Price Deal" as UC3
+    usecase "Capture Deal" as UC4 
+    usecase "Value deal" as UC5
+    usecase "Update Accounts" as UC6
+}
+
+UC3 ..> UC5: <<include>>
+UC2 ..> UC5: <<include>>
+
+TM -- UC1
+T -- UC2
+T -- UC3
+T -- UC4
+
+actor "Accounting System" as AS
+UC6 -- AS
+
+actor Salesperson as S
+
+UC3 -- S
+UC4 -- S
+@enduml
