@@ -1,0 +1,54 @@
+@startuml
+
+class SecretPanelController {
+  - state: SecretPanelState
+  + changeStateTo(s: SecretPanelState): void
+  + handleCandleRemoved(): void
+  + handleKeyTurned(): void
+  + handleSafeClosed(): void
+}
+
+abstract class SecretPanelState {
+  + handleCandleRemoved(ctx: SecretPanelController): void
+  + handleKeyTurned(ctx: SecretPanelController): void
+  + handleSafeClosed(ctx: SecretPanelController): void
+}
+
+class WaitState {
+  + handleCandleRemoved(ctx: SecretPanelController): void
+}
+
+class LockState {
+  + handleKeyTurned(ctx: SecretPanelController): void
+}
+
+class OpenState {
+  + handleSafeClosed(ctx: SecretPanelController): void
+}
+
+'
+SecretPanelController --> "state 1" SecretPanelState
+
+'
+WaitState --|> SecretPanelState
+LockState --|> SecretPanelState
+OpenState --|> SecretPanelState
+
+'
+note right of SecretPanelState
+Default behavior:
+do nothing
+end note
+
+note left of SecretPanelController
+state.handleCandleRemoved()
+end note
+
+note left of WaitState
+if (door open) {
+  revealLock()
+  changeStateTo(LockState)
+}
+end note
+
+@enduml

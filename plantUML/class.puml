@@ -1,0 +1,62 @@
+@startuml
+
+class Order {
+  dateReceived: Date [0..1]
+  isPrepaid: Boolean [1]
+  number: String [1]
+  price: Money
+  --
+  dispatch()
+  close()
+}
+
+class Customer {
+  name [1]
+  address [0..1]
+  --
+  getCreditRating(): String
+}
+
+class CorporateCustomer {
+  contactName
+  creditRating
+  creditLimit
+  --
+  billForMonth(month: Integer)
+  remind()
+}
+
+class PersonalCustomer {
+  creditCardNumber
+}
+
+class "Order Line" as OrderLine {
+  quantity: Integer
+  price: Money
+}
+
+class Product
+
+class Employee
+
+'
+CorporateCustomer --|> Customer
+PersonalCustomer  --|> Customer
+
+'
+Order     "*" --> "1" Customer
+Order     "1" --> "*" OrderLine : lineItems {ordered}
+OrderLine "*" --> "1" Product
+CorporateCustomer "*" --> "0..1" Employee : salesRep
+
+'
+note right of Order
+{ if Order.customer.getCreditRating() = "poor"
+  then Order.isPrepaid must be true }
+end note
+
+note right of PersonalCustomer
+{ getCreditRating() == "poor" }
+end note
+
+@enduml

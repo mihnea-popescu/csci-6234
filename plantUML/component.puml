@@ -1,0 +1,37 @@
+@startuml
+skinparam componentStyle uml2
+skinparam wrapWidth 200
+skinparam maxMessageSize 200
+
+'
+component "Till" as Till
+component "Message Queue" as MQ
+component "Accounting System" as AcctSys
+
+'
+package "Sales Server" as SalesServer {
+  component "Transaction\nProcessor" as TP
+  component "Accounting\nDriver" as AD
+}
+
+'
+'
+interface "sales message" as ISalesMsg
+Till - ISalesMsg
+MQ   - ISalesMsg
+
+'
+MQ ..> TP
+
+'
+interface " " as IAcctEvents
+TP - IAcctEvents
+AD - IAcctEvents
+
+'
+interface " " as IAcctAPI
+AD      - IAcctAPI
+AcctSys - IAcctAPI
+
+
+@enduml
