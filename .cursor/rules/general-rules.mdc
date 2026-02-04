@@ -1,0 +1,130 @@
+---
+alwaysApply: true
+---
+
+# Online Auction House System
+
+A simple, production-minded **online auction house** split into two pieces:
+
+- **Backend API (FastAPI):** owns business logic, persistence, and validations.
+- **Frontend (CLI):** a terminal client used by users to register, browse auctions, bid, and view results.
+
+This repo is designed so a developer can run everything with **one `docker compose up`** and get a working local environment immediately.
+
+---
+
+## Architecture
+
+### Components
+
+1. **API Service (`api`)**
+   - FastAPI app exposing REST endpoints for:
+     - user auth
+     - auction creation & management
+     - bidding
+     - winner selection when auctions end
+     - listing active/completed auctions
+   - Persists state to a local **SQLite** database file.
+
+2. **CLI Client (`cli`)**
+   - A Python CLI (recommended: `typer`) that talks to the API over HTTP.
+   - Use-cases:
+     - Register / login
+     - Create auction (optionally admin-only)
+     - List auctions
+     - Place bids
+     - View winners and completed auctions
+
+3. **SQLite Database**
+   - Stored as a single file (e.g. `./data/app.db`)
+   - **Gitignored** (committed schema/migrations, not the DB file).
+
+---
+
+## Repository Layout (recommended)
+
+.
+├── docker-compose.yml
+├── .gitignore
+├── api/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── app/
+│       ├── main.py
+│       ├── db.py
+│       ├── models.py
+│       ├── schemas.py
+│       ├── auth.py
+│       └── routers/
+│           ├── users.py
+│           ├── auctions.py
+│           └── bids.py
+└── cli/
+├── Dockerfile
+├── requirements.txt
+└── app/
+└── main.py
+
+---
+
+## Major Functions
+
+### User management
+- User registration
+- Login (token-based; simplest approach: JWT)
+- Authenticated requests from CLI to API
+
+### Auctions
+- Create auctions (item details, starting price, end timestamp)
+- List active auctions
+- View auction details
+- Close auctions automatically when end time is reached (see “Auction closing strategy”)
+
+### Bidding
+- Place bids on active auctions
+- Validate bid increments (must be > current highest)
+- Track current highest bid and bidder
+- Determine winner when auction closes
+
+### Reporting / Views
+- View active auctions
+- View completed auctions + final price + winner
+
+---
+
+## Auction Closing Strategy (simple, reliable)
+Because this is an MVP-style system, don’t over-engineer distributed schedulers.
+
+Two acceptable options:
+
+1. **Lazy closing (recommended for class project):**
+   - Every time an auction is queried or a bid is placed, check `now >= end_time`.
+   - If expired, mark it closed and compute winner.
+   - Pros: no background worker needed. Simple and deterministic.
+   - Cons: auctions only “close” when touched by traffic.
+
+2. **Background ticker inside API container:**
+   - A lightweight task loop that runs every N seconds and closes expired auctions.
+   - Pros: auctions close even if nobody touches them.
+   - Cons: adds concurrency concerns (still manageable with SQLite + careful locking).
+
+---
+
+API Contract (high-level)
+
+Suggested endpoints:
+	•	POST /auth/register
+	•	POST /auth/login -> returns token
+	•	GET /auctions (active by default, optional filters)
+	•	POST /auctions (create auction)
+	•	GET /auctions/{auction_id}
+	•	POST /auctions/{auction_id}/bids (place bid)
+	•	GET /auctions/{auction_id}/bids
+	•	GET /auctions/completed
+
+The CLI should store the auth token locally (e.g. in ~/.auctionhouse/token inside the container or print-and-paste for simplicity).
+
+	•	Keep business rules server-side (bid validation, auction closing, winner computation).
+	•	Treat the CLI as a thin client: it formats input/output and calls the API.
+	•	Use idempotent state transitions for closing auctions (closing twice should be harmless).
+	•	SQLite is fine for local dev + course MVP, but keep persistence behind a clean data-access layer so swapping to Postgres later is easy.
