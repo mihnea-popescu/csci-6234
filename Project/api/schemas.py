@@ -94,3 +94,8 @@ class BidResponse(BidBase):
 
 class AuctionDetailResponse(AuctionResponse):
     items: List[AuctionItemResponse]
+
+
+class AuctionImportResult(BaseModel):
+    created: int
+    errors: List[str]

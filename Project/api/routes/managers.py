@@ -1,11 +1,126 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from typing import List
-from database import get_db, User
-from schemas import AuctionResponse, AuctionCreate, AuctionItemCreate, AuctionItemResponse
+import csv
+import io
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+from typing import List, Optional
+
+from database import get_db, User, Auction, AuctionItem, Bid
+from schemas import AuctionResponse, AuctionCreate, AuctionItemCreate, AuctionItemResponse, AuctionImportResult
+from services.auction import ensure_auction_closed_if_ended, parse_auctions_csv
 import auth
 
 router = APIRouter()
+
+@router.get("/auctions", response_model=List[AuctionResponse])
+async def get_auctions(
+    current_user: User = Depends(auth.get_current_manager),
+    db: Session = Depends(get_db),
+    status_filter: Optional[str] = Query(None, alias="status"),
+):
+    query = (
+        db.query(Auction)
+        .options(joinedload(Auction.creator))
+        .order_by(Auction.created_at.desc())
+    )
+    if status_filter and status_filter in ("active", "ended", "cancelled"):
+        query = query.filter(Auction.status == status_filter)
+    auctions = query.all()
+    for a in auctions:
+        ensure_auction_closed_if_ended(db, a)
+    return auctions
+
+@router.get("/auctions/export")
+async def export_auctions_csv(
+    current_user: User = Depends(auth.get_current_manager),
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(Auction)
+        .options(joinedload(Auction.items))
+        .order_by(Auction.id)
+    )
+    auctions = query.all()
+    for a in auctions:
+        ensure_auction_closed_if_ended(db, a)
+
+    def row_gen():
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["auction_id", "name", "status", "ended_at", "item_count", "total_bids", "revenue"])
+        yield buffer.getvalue()
+        for a in auctions:
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            item_count = len(a.items)
+            total_bids = db.query(func.count(Bid.id)).join(AuctionItem).filter(AuctionItem.auction_id == a.id).scalar() or 0
+            revenue = sum(
+                (item.closing_price if a.status == "ended" else item.current_bid) for item in a.items
+            ) if a.items else Decimal("0")
+            writer.writerow([
+                a.id,
+                a.name,
+                a.status,
+                a.ended_at.isoformat() if a.ended_at else "",
+                item_count,
+                total_bids,
+                str(revenue),
+            ])
+            yield buffer.getvalue()
+
+    return StreamingResponse(
+        row_gen(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=auction_stats.csv"},
+    )
+
+@router.post("/auctions/import", response_model=AuctionImportResult)
+async def import_auctions_csv(
+    current_user: User = Depends(auth.get_current_manager),
+    db: Session = Depends(get_db),
+    file: UploadFile = File(...),
+):
+    content = (await file.read()).decode("utf-8", errors="replace")
+    rows = parse_auctions_csv(content)
+    created = 0
+    errors = []
+    for idx, (name, ended_at, items) in enumerate(rows):
+        if not name:
+            errors.append(f"Row {idx + 2}: missing name")
+            continue
+        if ended_at is None:
+            errors.append(f"Row {idx + 2}: invalid or missing ended_at")
+            continue
+        if not items:
+            errors.append(f"Row {idx + 2}: at least one item required")
+            continue
+        try:
+            auction = Auction(
+                name=name,
+                ended_at=ended_at,
+                created_by=current_user.id,
+                status="active",
+            )
+            db.add(auction)
+            db.flush()
+            for item_name, opening_price in items:
+                db.add(
+                    AuctionItem(
+                        name=item_name,
+                        opening_price=opening_price,
+                        closing_price=Decimal("0"),
+                        auction_id=auction.id,
+                    )
+                )
+            db.commit()
+            created += 1
+        except Exception as e:
+            db.rollback()
+            errors.append(f"Row {idx + 2}: {e!s}")
+    return AuctionImportResult(created=created, errors=errors)
 
 @router.post("/auctions", response_model=AuctionResponse)
 async def create_auction(auction: AuctionCreate, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
