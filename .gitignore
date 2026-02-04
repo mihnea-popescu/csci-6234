@@ -3,3 +3,8 @@
 .cursor/
 .env
 __pycache__/
+
+# Database files
+Project/data/
+*.db
+*.sqlite
