@@ -14,12 +14,12 @@ rectangle "Online Auction House System" {
   usecase "Price Estimation Tool" as UC6
 }
 
-Customer --> UC1
 Customer --> UC2
 Customer --> UC3
 Customer --> UC4
 Customer --> UC6
 
+Manager --> UC1
 Manager --> UC5
 Manager --> UC3
 Manager --> UC4
@@ -42,3 +42,4 @@ platform.
 end note
 
 @enduml
+
