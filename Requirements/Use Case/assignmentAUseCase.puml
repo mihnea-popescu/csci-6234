@@ -1,0 +1,45 @@
+@startuml
+left to right direction
+
+actor "Customer" as Customer <<primary>>
+actor "Auction House Manager" as Manager <<secondary>>
+
+rectangle "Online Auction House System" {
+
+  usecase "Create Auction" as UC1
+  usecase "Place Bid" as UC2
+  usecase "View Active Auctions" as UC3
+  usecase "View Completed Auctions" as UC4
+  usecase "Track Highest Bid\nand Winner" as UC5
+  usecase "Price Estimation Tool" as UC6
+}
+
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC6
+
+Manager --> UC1
+Manager --> UC5
+Manager --> UC3
+Manager --> UC4
+
+UC2 .> UC5 : <<include>>
+
+note right of Customer
+The customer is the main user of the system.
+They can create auctions, place bids,
+browse auctions, and use the price
+estimation tool to estimate an item's
+value.
+end note
+
+note right of Manager
+The auction house manager oversees
+the auctions in the system. They have
+access to analytics of the entire
+platform.
+end note
+
+@enduml
+
