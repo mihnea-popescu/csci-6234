@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
-import bcrypt
+
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -17,20 +17,14 @@ BCRYPT_MAX_PASSWORD_BYTES = 72
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-def _password_bytes_truncated(password: str) -> bytes:
-    """Bcrypt only uses the first 72 bytes; truncate so hashing never fails."""
-    return password.encode("utf-8")[:BCRYPT_MAX_PASSWORD_BYTES]
-
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    secret = _password_bytes_truncated(plain_password)
-    hashed_bytes = hashed_password.encode("utf-8") if isinstance(hashed_password, str) else hashed_password
-    return bcrypt.checkpw(secret, hashed_bytes)
+    # Placeholder for password verification using passlib
+    return plain_password == hashed_password
 
 
 def get_password_hash(password: str) -> str:
-    secret = _password_bytes_truncated(password)
-    return bcrypt.hashpw(secret, bcrypt.gensalt()).decode("utf-8")
+    # Placeholder for password hashing using passlib
+    return password
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()

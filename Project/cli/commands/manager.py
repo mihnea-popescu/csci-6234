@@ -1,31 +1,59 @@
 import click
+from commands.auth import require_auth
 from api_client import APIClient
+
+def main(standalone_mode=True):
+    """Alternative entry point for standalone mode"""
+    if standalone_mode:
+        # When called from interactive mode, invoke the original command
+        pass  # Will be handled by calling the decorated function directly
 
 @click.command()
 @click.argument('name')
+@require_auth
 def create_auction(name):
     """Create a new auction"""
-    # Placeholder: Call API to create auction
     client = APIClient()
     result = client.create_auction(name)
-    click.echo(f"Auction created: {result}")
+    if result and 'id' in result:
+        click.echo(f"✅ Auction created successfully!")
+        click.echo(f"   ID: {result['id']}")
+        click.echo(f"   Name: {result['name']}")
+        click.echo(f"   Status: {result['status']}")
+    else:
+        click.echo("❌ Failed to create auction.")
 
 @click.command()
 @click.argument('auction_id')
 @click.argument('name')
 @click.argument('opening_price', type=float)
+@require_auth
 def add_item(auction_id, name, opening_price):
     """Add item to auction"""
-    # Placeholder: Call API to add item
     client = APIClient()
     result = client.add_item(auction_id, name, opening_price)
-    click.echo(f"Item added: {result}")
+    if result and 'id' in result:
+        click.echo(f"✅ Item added to auction!")
+        click.echo(f"   Item ID: {result['id']}")
+        click.echo(f"   Name: {result['name']}")
+        click.echo(f"   Opening Price: ${result['opening_price']}")
+        click.echo(f"   Auction ID: {result['auction_id']}")
+    else:
+        click.echo("❌ Failed to add item to auction.")
 
 @click.command()
 @click.argument('auction_id')
+@require_auth
 def end_auction(auction_id):
     """End an auction and process results"""
-    # Placeholder: Call API to end auction
     client = APIClient()
     result = client.end_auction(auction_id)
-    click.echo(f"Auction ended: {result}")
+    if result and 'id' in result:
+        click.echo(f"✅ Auction ended successfully!")
+        click.echo(f"   ID: {result['id']}")
+        click.echo(f"   Name: {result['name']}")
+        click.echo(f"   Status: {result['status']}")
+        if 'ended_at' in result and result['ended_at']:
+            click.echo(f"   Ended At: {result['ended_at']}")
+    else:
+        click.echo("❌ Failed to end auction.")
