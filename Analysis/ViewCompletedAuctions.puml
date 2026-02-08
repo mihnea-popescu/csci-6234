@@ -1,0 +1,27 @@
+@startuml ViewCompletedAuctions
+allowmixing
+left to right direction
+actor Customer 
+
+rectangle "Completed Auctions" as CompleteAuctions{
+
+    boundary "Command Line Interface (CLI)" as CLI
+    boundary "Display Menu" as DisplayMenu
+    control "ViewCompletedAuctionsController" as VCAController
+    control "Validate Request" as ValidateRequest
+    entity "Auction Database" as AuctionDB
+    entity "Completed Auctions Data" as CompletedAuctionsData
+    entity "Display Error" as DisplayError
+
+    CLI --> DisplayMenu : Show main menu
+    DisplayMenu --> VCAController : Customer selects\n"View Completed Auctions"
+    VCAController --> ValidateRequest : Process request
+    ValidateRequest --> AuctionDB : Request valid?
+    ValidateRequest --> DisplayError : Request invalid
+    AuctionDB --> CompletedAuctionsData : Retrieve completed\nauctions data
+}
+
+Customer --> CLI : Run the application
+
+
+@enduml

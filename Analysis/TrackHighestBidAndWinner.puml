@@ -1,0 +1,23 @@
+@startuml TrackHighestBidAndWinner
+allowmixing
+left to right direction
+
+actor "Auction Manager" as Manager
+
+rectangle "Track Highest Bid and Winner" as TrackBidWinner {
+
+    boundary "Command Line Interface (CLI)" as CLI
+    boundary "Display Menu" as DisplayMenu
+    control "TrackHighestBidAndWinnerController" as THBAWController
+    control "GetBids" as GetBids
+    entity "Highest Bid\nand Winner Details" as BidData
+
+    CLI --> DisplayMenu : Show main menu
+    DisplayMenu --> THBAWController : Manager selects\n"Track Highest Bid and Winner"
+    THBAWController --> GetBids : Process request
+    GetBids --> BidData: highest bid\nand winner details
+}
+
+Manager --> CLI : Run the application
+
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+allowmixing
+left to right direction
+
+actor "Auction Manager" as Manager
+
+rectangle "Create Auction" as CreateAuction {
+  boundary "CLI" as CLI
+  control "Upload Service" as UploadService
+  control "Auction Controller" as AuctionController
+  entity "Auction database" as AuctionDB
+  entity "Items database" as ItemsDB
+
+  CLI --> UploadService : Upload item details
+  UploadService --> AuctionController : Validate and process item details
+  AuctionController --> ItemsDB : Store item details
+  AuctionController --> AuctionDB : Create auction entry
+
+}
+
+Manager --> CLI : Run Application
+
+@enduml
